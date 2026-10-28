@@ -44,8 +44,8 @@ class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
         self.flatten = nn.Flatten()
-        self.hidden1 = nn.Linear(in_features=28*28, out_features=128)
-        self.hidden2 = nn.Linear(in_features=128, out_features=256)
+        self.hidden1 = nn.Linear(in_features=28*28, out_features=512)
+        self.hidden2 = nn.Linear(in_features=512, out_features=256)
         self.output = nn.Linear(in_features=256, out_features=10)
 
     # 前向传播
@@ -81,8 +81,33 @@ def train(dataloader, model, loss_fn, optimizer):
             loss, current = loss.item(), batch * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
+# 定义测试函数
+def test(dataloader, model, loss_fn):
+    size = len(dataloader.dataset)
+    num_batches = len(dataloader)
+    model.eval() # 测试模式
+    test_loss, correct = 0, 0
+    with torch.no_grad():
+        for X, y in dataloader:
+            X, y = X.to(device), y.to(device)
+            pred = model(X)
+            test_loss += loss_fn(pred, y).item()
+            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+    test_loss /= num_batches
+    correct /= size
+    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
 loss_fn = nn.CrossEntropyLoss() # 交叉熵损失函数
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3) # Adam优化器
 
-train(train_dataloader, model, loss_fn, optimizer) # 训练模型
+epochs = 3 # 把整个数据集完整过 3 遍
+for t in range(epochs):
+    print(f"-------------------------------\nEpoch {t+1}\n-------------------------------")
+    
+    # 调用训练函数
+    train(train_dataloader, model, loss_fn, optimizer)
+    
+    # 调用测试函数
+    test(test_dataloader, model, loss_fn)
+
+print("Done!")
